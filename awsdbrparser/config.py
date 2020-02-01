@@ -67,6 +67,8 @@ class Config(object):
         self.es_month = today.month
         self.es_timestamp = 'UsageStartDate'  # fieldname that will be replaced by Timestamp
         self.es_timeout = ES_TIMEOUT
+        # elasticsearch security and es7 conf
+        self.security = False
 
         # aws account id
         self.account_id = '01234567890'

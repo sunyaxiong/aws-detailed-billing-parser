@@ -54,13 +54,14 @@ def analytics(config, echo):
     file_in = open(config.input_filename, 'r')
     awsauth = None
     if config.awsauth:
+        # 实验中未使用AWS的认证，因为ec2 proxy-server到ES服务是不需要认证的，可以略过此代码。
         session = boto3.Session()
         credentials = session.get_credentials()
         if credentials:
             region = session.region_name
             awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es',
                                session_token=credentials.token)
-
+    # 考虑在此处添加判断，是否向高版本的ES插入数据，在此之前还是先测试向本地es节点写入数据。
     es = Elasticsearch([{'host': config.es_host, 'port': config.es_port}], timeout=config.es_timeout, http_auth=awsauth,
                        connection_class=RequestsHttpConnection)
     es.indices.create(config.index_name, ignore=400)

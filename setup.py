@@ -54,7 +54,7 @@ def read_requirements():
 setup(
     name='awsdbrparser',
     version=read_version(),
-    url='http://github.com/awslabs/aws-detailed-billing-parser',
+    url='https://github.com/sunyaxiong/aws-detailed-billing-parser.git',
     license='Apache Software License',
     author='Rafael M. Koike',
     author_email='koiker@amazon.com',

@@ -19,6 +19,7 @@
 import datetime
 import os
 import sys
+sys.path.append('D:\workspace\aws-detailed-billing-parser\aws-detailed-billing-parser\awsdbrparser')
 import time
 
 import click
@@ -96,6 +97,8 @@ def main(config, *args, **kwargs):
     kwargs['output_filename'] = kwargs.pop('output', config.output_filename)
     kwargs['es_year'] = kwargs.pop('year', config.es_year)
     kwargs['es_month'] = kwargs.pop('month', config.es_month)
+    # auth default is awsauth, I need add a args to judge if insert data to a security ES7.*
+    kwargs['security'] = kwargs.pop('security', config.security)
 
     config.update_from(**kwargs)
 
