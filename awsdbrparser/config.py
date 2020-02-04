@@ -190,6 +190,8 @@ class Config(object):
     @property
     def es2(self):
         return self._es2
+        # setter将cli默认的config.es2的值True修改为False，此处很迷
+        # 因为config.es2已经用来判断2x/6x，所以从cli新增一个参数用来判断“安全的高版本”ES就变得比较有必要。
 
     @es2.setter
     def es2(self, is_es2x):
@@ -199,6 +201,9 @@ class Config(object):
         else:
             version = '6'
         self.doctype = version
+        # 貌似整个程序都是按照6的版本在处理索引？此处在本地做个实验，也要了解setter的用法
+        # 下面index_name 的逻辑来看都是按照6.x的逻辑来命名index的，好像与实际不符
+        # TODO 此处要重点看下，先看下setter用法吧
 
     @property
     def index_name(self):

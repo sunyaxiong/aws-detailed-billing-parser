@@ -19,7 +19,6 @@
 import datetime
 import os
 import sys
-sys.path.append('D:\workspace\aws-detailed-billing-parser\aws-detailed-billing-parser\awsdbrparser')
 import time
 
 import click
@@ -73,11 +72,14 @@ configure = click.make_pass_decorator(Config, ensure=True)
                    'new (this option will be ignored in bulk processing).')
 @click.option('--awsauth', is_flag=True, default=False,
               help='Access the Elasticsearch with AWS Signed V4 Requests')
-@click.option('--es2/--es6', default=DEFAULT_ES2, help='Define the Document Type to be ingested. Default is Elastic 2.x')
+# --es2/--es6 这种用法很特殊，当执行cli时添加 --es2就是true， --es6就是false； default值代表不加该参数时的值
+# es6.8与本程序不兼容，所以es6的兼容没有意义；将es6改成es7，并在parser方法增加es7的支持逻辑
+@click.option('--es2/--es7', default=DEFAULT_ES2, help='Define the Document Type to be ingested. Default is Elastic 2.x')
 @click.option('-v', '--version', is_flag=True, default=False, help='Display version number and exit.')
 @click.option('-q', '--quiet', is_flag=True, default=False, help='Runs as silently as possible.')
 @click.option('--fail-fast', is_flag=True, default=False, help='Stop parsing on first index error.')
 @click.option('--debug', is_flag=True, default=False, help='Print extra data even in quiet mode.')
+@click.option('-s', '--security', is_flag=True, default=False, help='Define whether write data to a security es')
 @configure
 def main(config, *args, **kwargs):
     """AWS - Detailed Billing Records parser"""

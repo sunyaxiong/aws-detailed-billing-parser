@@ -54,7 +54,8 @@ def analytics(config, echo):
     file_in = open(config.input_filename, 'r')
     awsauth = None
     if config.awsauth:
-        # 实验中未使用AWS的认证，因为ec2 proxy-server到ES服务是不需要认证的，可以略过此代码。
+        # 实验中使用AWS-cli将账单文件拷贝到proxy-server1本地目录未使用AWS的认证，
+        # 所以ec2 proxy-server到ES服务是不需要认证的，可以略过此代码。
         session = boto3.Session()
         credentials = session.get_credentials()
         if credentials:
@@ -62,10 +63,17 @@ def analytics(config, echo):
             awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es',
                                session_token=credentials.token)
     # 考虑在此处添加判断，是否向高版本的ES插入数据，在此之前还是先测试向本地es节点写入数据。
+    # 经过测试，python版本的sdk对安全的支持文档较少，未找到合适方法使用sdk。为了后期维护和扩展性，
+    # 此处为预先创建billing索引，创建mapping
+    # 考虑使用官方更推荐的restfulAPI，对高版本、安全的ES集群进行数据写入。
     es = Elasticsearch([{'host': config.es_host, 'port': config.es_port}], timeout=config.es_timeout, http_auth=awsauth,
                        connection_class=RequestsHttpConnection)
-    es.indices.create(config.index_name, ignore=400)
-    es.indices.create(config.es_doctype, ignore=400)
+    if config.es2:
+        es.indices.create(config.index_name, ignore=400)
+        es.indices.create(config.es_doctype, ignore=400)
+    else:
+        echo("prepare index and mapping，The ES version is {}".format(config.es2))
+        # TODO
 
     csv_file = csv.DictReader(file_in, delimiter=config.csv_delimiter)
     analytics_daytime = dict()
@@ -103,11 +111,13 @@ def analytics(config, echo):
     # Some DBR files has Cost (Single Account) and some has (Un)BlendedCost (Consolidated Account)
     # In this case we try to process both, but one will be zero and we need to check
     # TODO: use a single variable and an flag to output Cost or Unblended
+    # TODO 此处需要测试，ec2-per-usd是否能在es7下创建，对于此处的判断逻辑有疑惑：一个索引，多个type？
     if config.es2:
         index_name = config.index_name
     else:
         index_name = 'ec2_per_usd'
-    if not es.indices.exists(index=index_name):
+
+    if not es.indices.exists(index=index_name):  # 如果billing不存在，创建index并mapping
         es.indices.create(index_name, ignore=400, body={
             "mappings": {
                 "ec2_per_usd": {
@@ -187,6 +197,7 @@ def parse(config, verbose=False):
     echo('Opening input file: {}'.format(config.input_filename))
     file_in = open(config.input_filename, 'r')
 
+    # 输出到文件和es节点两种情况
     if config.output_to_file:
         echo('Opening output file: {}'.format(config.output_filename))
         file_out = open(config.output_filename, 'w')
@@ -202,14 +213,20 @@ def parse(config, verbose=False):
                 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es',
                                    session_token=credentials.token)
 
-        es = Elasticsearch([{'host': config.es_host, 'port': config.es_port}], timeout=config.es_timeout,
-                           http_auth=awsauth, connection_class=RequestsHttpConnection)
-        if config.delete_index:
-            echo('Deleting current index: {}'.format(config.index_name))
-            es.indices.delete(config.index_name, ignore=404)
-        es.indices.create(config.index_name, ignore=400)
-        es.indices.put_mapping(index=config.index_name, doc_type=config.es_doctype, body=config.mapping)
+        # C1- if es7 else
+        if config._es2:
+            es = Elasticsearch([{'host': config.es_host, 'port': config.es_port}], timeout=config.es_timeout,
+                               http_auth=awsauth, connection_class=RequestsHttpConnection)
+            if config.delete_index:
+                echo('Deleting current index: {}'.format(config.index_name))
+                es.indices.delete(config.index_name, ignore=404)
+            es.indices.create(config.index_name, ignore=400)
+            es.indices.put_mapping(index=config.index_name, doc_type=config.es_doctype, body=config.mapping)
+        else:
+            echo("The ES version is {}".format(config.es2))
+            # TODO es7 and security
 
+    # 日志的显示情况？
     if verbose:
         progressbar = click.progressbar
 
@@ -233,7 +250,7 @@ def parse(config, verbose=False):
         progressbar = utils.null_progressbar
         record_count = 0
 
-    # If BI is enabled, create a thread and start running
+    # If BI is enabled, create a thread and start running 此处预先处理elasticity和ec2-per-usd两个索引
     analytics_start = time.time()
     if config.analytics:
         echo('Starting the BI Analytics Thread')
@@ -259,39 +276,44 @@ def parse(config, verbose=False):
                         yield json.dumps(utils.pre_process(json_row))
                         pbar.update(1)
 
-            for recno, (success, result) in enumerate(helpers.streaming_bulk(es, documents(),
-                                                                             index=config.index_name,
-                                                                             doc_type=config.es_doctype,
-                                                                             chunk_size=config.bulk_size)):
-                # <recno> integer, the record number (0-based)
-                # <success> bool
-                # <result> a dictionary like this one:
-                #
-                #   {
-                #       'create': {
-                #           'status': 201,
-                #           '_type': 'billing',
-                #           '_shards': {
-                #               'successful': 1,
-                #               'failed': 0,
-                #               'total': 2
-                #           },
-                #           '_index': 'billing-2015-12',
-                #           '_version': 1,
-                #           '_id': u'AVOmiEdSF_o3S6_4Qeur'
-                #       }
-                #   }
-                #
-                if not success:
-                    message = 'Failed to index record {:d} with result: {!r}'.format(recno, result)
-                    if config.fail_fast:
-                        raise ParserError(message)
+            # 此处在批量写入账单数据
+            if config.es2:
+                for recno, (success, result) in enumerate(helpers.streaming_bulk(es, documents(),
+                                                                                 index=config.index_name,
+                                                                                 doc_type=config.es_doctype,
+                                                                                 chunk_size=config.bulk_size)):
+                    # <recno> integer, the record number (0-based)
+                    # <success> bool
+                    # <result> a dictionary like this one:
+                    #
+                    #   {
+                    #       'create': {
+                    #           'status': 201,
+                    #           '_type': 'billing',
+                    #           '_shards': {
+                    #               'successful': 1,
+                    #               'failed': 0,
+                    #               'total': 2
+                    #           },
+                    #           '_index': 'billing-2015-12',
+                    #           '_version': 1,
+                    #           '_id': u'AVOmiEdSF_o3S6_4Qeur'
+                    #       }
+                    #   }
+                    #
+                    if not success:
+                        message = 'Failed to index record {:d} with result: {!r}'.format(recno, result)
+                        if config.fail_fast:
+                            raise ParserError(message)
+                        else:
+                            echo(message, err=True)
                     else:
-                        echo(message, err=True)
-                else:
-                    added += 1
+                        added += 1
+            else:
+                echo("streaming bulk, The ES version is {}".format(config.es2))
 
     elif config.process_mode == PROCESS_BY_LINE:
+        # 忽略即可
         with progressbar(length=record_count) as pbar:
             csv_file = csv.DictReader(file_in, delimiter=config.csv_delimiter)
             for recno, json_row in enumerate(csv_file):
@@ -349,6 +371,7 @@ def parse(config, verbose=False):
 
                 pbar.update(1)
     elif config.process_mode == PROCESS_BI_ONLY and config.analytics:
+        # 忽略即可
         echo('Processing Analytics Only')
         while thread.is_alive():
             # Wait for a timeout
