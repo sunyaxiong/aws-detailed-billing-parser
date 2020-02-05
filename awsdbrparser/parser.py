@@ -116,7 +116,7 @@ def analytics(config, echo):
         index_name = config.index_name
     else:
         index_name = 'ec2_per_usd'
-
+    # 创建ec2_per_usd索引并mapping
     if not es.indices.exists(index=index_name):  # 如果billing不存在，创建index并mapping
         if not config.custom:
             es.indices.create(index_name, ignore=400, body={
@@ -153,15 +153,18 @@ def analytics(config, echo):
     else:
         index_name = 'elasticity'
     if not es.indices.exists(index=index_name):
-        es.indices.create(index_name, ignore=400, body={
-            "mappings": {
-                "elasticity": {
-                    "properties": {
-                        "UsageStartDate" : {"type": "date", "format": "YYYY-MM-dd HH:mm:ss"}
+        if not config.custom:
+            es.indices.create(index_name, ignore=400, body={
+                "mappings": {
+                    "elasticity": {
+                        "properties": {
+                            "UsageStartDate" : {"type": "date", "format": "YYYY-MM-dd HH:mm:ss"}
+                        }
                     }
                 }
-            }
-        })
+            })
+        else:
+            echo("此处通过rest创建elasticity的索引，config_es: version {}".format(config._es))
     for k, v in analytics_day_only.items():
         ec2_min = min(value["Count"] - value["RI"] for key, value in analytics_daytime.items() if k in key)
         ec2_max = max(value["Count"] - value["RI"] for key, value in analytics_daytime.items() if k in key)
@@ -173,15 +176,17 @@ def analytics(config, echo):
         ri_coverage = float(analytics_day_only[k]["RI"]) / float(analytics_day_only[k]["Count"])
         spot_coverage = float(analytics_day_only[k]["Spot"]) / float(analytics_day_only[k]["Count"])
 
+        if not config.custom:
+            response = es.index(index=index_name, doc_type='elasticity',
+                                body={'UsageStartDate': k + ' 12:00:00',
+                                      'Elasticity': elasticity,
+                                      'ReservedInstanceCoverage': ri_coverage,
+                                      'SpotCoverage': spot_coverage})
 
-        response = es.index(index=index_name, doc_type='elasticity',
-                            body={'UsageStartDate': k + ' 12:00:00',
-                                  'Elasticity': elasticity,
-                                  'ReservedInstanceCoverage': ri_coverage,
-                                  'SpotCoverage': spot_coverage})
-
-        if not response.get('created'):
-            echo('[!] Unable to send document to ES!')
+            if not response.get('created'):
+                echo('[!] Unable to send document to ES!')
+        else:
+            echo("此处通过rest创建elasticity的mapping， setter： config.es2: version {}".format(config.es2))
 
     file_in.close()
     # Finished Processing
