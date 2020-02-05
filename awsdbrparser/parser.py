@@ -68,7 +68,7 @@ def analytics(config, echo):
     # 考虑使用官方更推荐的restfulAPI，对高版本、安全的ES集群进行数据写入。
     es = Elasticsearch([{'host': config.es_host, 'port': config.es_port}], timeout=config.es_timeout, http_auth=awsauth,
                        connection_class=RequestsHttpConnection)
-    if config.es2:
+    if not config.custom:
         es.indices.create(config.index_name, ignore=400)
         es.indices.create(config.es_doctype, ignore=400)
     else:
@@ -118,24 +118,30 @@ def analytics(config, echo):
         index_name = 'ec2_per_usd'
 
     if not es.indices.exists(index=index_name):  # 如果billing不存在，创建index并mapping
-        es.indices.create(index_name, ignore=400, body={
-            "mappings": {
-                "ec2_per_usd": {
-                    "properties": {
-                        "UsageStartDate" : {"type": "date", "format": "YYYY-MM-dd HH:mm:ss"}
+        if not config.custom:
+            es.indices.create(index_name, ignore=400, body={
+                "mappings": {
+                    "ec2_per_usd": {
+                        "properties": {
+                            "UsageStartDate": {"type": "date", "format": "YYYY-MM-dd HH:mm:ss"}
+                        }
                     }
                 }
-            }
-        })
+            })
+        else:
+            echo("rest 创建索引ec2_per_usd, version {}".format(config.es2))
     for k, v in analytics_daytime.items():
         result_cost = 1.0 / (v.get('Cost') / v.get('Count')) if v.get('Cost') else 0.00
         result_unblended = 1.0 / (v.get('Unblended') / v.get('Count')) if v.get('Unblended') else 0.0
-        response = es.index(index=index_name, doc_type='ec2_per_usd',
-                            body={'UsageStartDate': k,
-                                  'EPU_Cost': result_cost,
-                                  'EPU_UnBlended': result_unblended})
-        if not response.get('created'):
-            echo('[!] Unable to send document to ES!')
+        if not config.custom:
+            response = es.index(index=index_name, doc_type='ec2_per_usd',
+                                body={'UsageStartDate': k,
+                                      'EPU_Cost': result_cost,
+                                      'EPU_UnBlended': result_unblended})
+            if not response.get('created'):
+                echo('[!] Unable to send document to ES!')
+        else:
+            echo("rest 创建索引ec2_per_usd的mapping, version {}".format(config.es2))
 
     # Elasticity
     #
@@ -213,10 +219,9 @@ def parse(config, verbose=False):
                 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es',
                                    session_token=credentials.token)
 
-        # C1- if es7 else
-        if config._es2:
-            es = Elasticsearch([{'host': config.es_host, 'port': config.es_port}], timeout=config.es_timeout,
-                               http_auth=awsauth, connection_class=RequestsHttpConnection)
+        es = Elasticsearch([{'host': config.es_host, 'port': config.es_port}], timeout=config.es_timeout,
+                           http_auth=awsauth, connection_class=RequestsHttpConnection)
+        if not config.custom:
             if config.delete_index:
                 echo('Deleting current index: {}'.format(config.index_name))
                 es.indices.delete(config.index_name, ignore=404)
@@ -277,7 +282,7 @@ def parse(config, verbose=False):
                         pbar.update(1)
 
             # 此处在批量写入账单数据
-            if config.es2:
+            if not config.custom:
                 for recno, (success, result) in enumerate(helpers.streaming_bulk(es, documents(),
                                                                                  index=config.index_name,
                                                                                  doc_type=config.es_doctype,
@@ -310,7 +315,7 @@ def parse(config, verbose=False):
                     else:
                         added += 1
             else:
-                echo("streaming bulk, The ES version is {}".format(config.es2))
+                echo("custom streaming bulk, The ES version is {}".format(config.es2))
 
     elif config.process_mode == PROCESS_BY_LINE:
         # 忽略即可
