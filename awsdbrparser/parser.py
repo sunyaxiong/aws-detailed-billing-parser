@@ -118,8 +118,8 @@ def analytics(config, echo):
         index_name = config.index_name
     else:
         index_name = 'ec2_per_usd'
-    # 创建ec2_per_usd索引并mapping
-    if not es.indices.exists(index=index_name):  # 如果billing不存在，创建index并mapping
+    # if not es.indices.exists(index=index_name):  # 这是原始代码，改造后因为2.3与7.3索引用法升级，所以改造如下
+    if not es.indices.exists(index="ec2_per_usd"):  # 如果ec2_per_usd不存在，创建index并mapping；
         if not config.custom:
             es.indices.create(index_name, ignore=400, body={
                 "mappings": {
@@ -151,7 +151,7 @@ def analytics(config, echo):
             if not response.get('created'):
                 echo('[!] Unable to send document to ES!')
         else:
-            echo("写入ec2_per_usd索引数据, version {}".format(config.es2))
+            echo("接下来写入ec2_per_usd索引数据, version {}".format(config.es2))
             url = "http://{}:{}/{}".format(config.es_host, config.es_port, "ec2_per_usd")
             r = requests.post(url, headers=HEADERS, data={
                 'UsageStartDate': k,
@@ -159,7 +159,7 @@ def analytics(config, echo):
                 "EPU_UnBlended": result_unblended
             })
             if not r.ok:
-                echo("ec2_per_usd索引写入失败，请检查")
+                echo("ec2_per_usd索引数据写入失败，请检查")
 
     # Elasticity
     #
@@ -170,7 +170,8 @@ def analytics(config, echo):
         index_name = config.index_name
     else:
         index_name = 'elasticity'
-    if not es.indices.exists(index=index_name):  # True/False # 就是用来判断是否存在index，create的用法是2.3的特性
+    # if not es.indices.exists(index=index_name):  # 原始代码写法，因es7.3索引语法升级，改造判断为下方的写法
+    if not es.indices.exists(index="elasticity"):  # True/False # 就是用来判断是否存在index，create的用法是2.3的特性
         if not config.custom:
             es.indices.create(index_name, ignore=400, body={
                 "mappings": {
