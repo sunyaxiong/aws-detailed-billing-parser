@@ -198,7 +198,7 @@ def analytics(config, echo):
                     "properties": {
                         "UsageStartDate": {
                             "type": "date",
-                            "format": "YYYY-MM-dd HH:mm:ss||YYYY/MM/dd HH:mm||YYYY/M/d H:mm||YYYY/MM/dd HH:mm:ss"
+                            "format": "YYYY/M/d HH:mm:ss||YYYY/MM/dd HH:mm||YYYY/M/d H:mm||YYYY/MM/dd HH:mm:ss||"
                         }
                     }
                 }
