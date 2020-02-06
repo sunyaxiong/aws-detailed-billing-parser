@@ -372,8 +372,7 @@ def parse(config, verbose=False):
             else:
                 echo("custom streaming bulk, The ES version is {}".format(config.es2))
                 for recno, (success, result) in enumerate(helpers.streaming_bulk(es, documents(),
-                                                                                 index=config.index_name,
-                                                                                 doc_type=config.es_doctype,
+                                                                                 index=config.index_name,  # no doctype
                                                                                  chunk_size=config.bulk_size)):
                     if not success:
                         message = 'Failed to index record {:d} with result: {!r}'.format(recno, result)
