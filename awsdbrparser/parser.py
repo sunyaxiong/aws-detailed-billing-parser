@@ -330,8 +330,9 @@ def parse(config, verbose=False):
                 for json_row in csv_file:
                     if not is_control_message(json_row, config):
                         if config.debug:
-                            print(json.dumps(  # do not use 'echo()' here
-                                utils.pre_process(json_row)))
+                            # print(json.dumps(  # do not use 'echo()' here
+                            #     utils.pre_process(json_row)))
+                            echo("debug: json_row error")
                         yield json.dumps(utils.pre_process(json_row))  # 此处对json_row进行了处理
                         pbar.update(1)
 
