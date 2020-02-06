@@ -134,7 +134,7 @@ def analytics(config, echo):
         else:
             echo("在-C参数控制下，通过rest创建索引ec2_per_usd, version {}".format(config.es2))
             url = "http://{}:{}/{}".format(config.es_host, config.es_port, "ec2_per_usd")
-            r = requests.put(url, headers=HEADERS, data={"mappings": {
+            r = requests.put(url, headers=HEADERS, json={"mappings": {
                 "properties": {
                     "UsageStartDate": {"type": "date", "format": "YYYY/MM/dd HH:mm:ss||YYYY/M/d H:mm"}
                 }
@@ -154,7 +154,7 @@ def analytics(config, echo):
         else:
             echo("接下来写入ec2_per_usd索引数据, version {}".format(config.es2))
             url = "http://{}:{}/{}".format(config.es_host, config.es_port, "ec2_per_usd")
-            r = requests.post(url, headers=HEADERS, data={
+            r = requests.post(url, headers=HEADERS, json={
                 'UsageStartDate': k,
                 "EPU_Cost": result_cost,
                 "EPU_UnBlended": result_unblended
@@ -185,7 +185,7 @@ def analytics(config, echo):
             })
         else:
             url = "http://{}:{}/{}".format(config.es_host, config.es_port, "elasticity")
-            r = requests.put(url, headers=HEADERS, data={
+            r = requests.put(url, headers=HEADERS, json={
                 "mappings": {
                     "properties": {
                         "UsageStartDate": {"type": "date", "format": "YYYY/MM/dd HH:mm:ss||YYYY/M/d H:mm"}
@@ -217,7 +217,7 @@ def analytics(config, echo):
         else:
             echo("此处通过rest创建elasticity的mapping， setter： config.es2: version {}".format(config.es2))
             url = "http://{}:{}/{}".format(config.es_host, config.es_port, "elasticity")
-            r = requests.post(url, headers=HEADERS, data={
+            r = requests.post(url, headers=HEADERS, json={
                 'UsageStartDate': k + ' 12:00:00',
                 "Elasticity": elasticity,
                 "ReservedInstanceCoverage": ri_coverage,
@@ -280,7 +280,7 @@ def parse(config, verbose=False):
             # 创建索引和mapping一起完成
             _data = {"mappings": config.doctype}
             fp = os.path.join(os.path.dirname(__file__), "data", "dbr_doctype_es6x.json")
-            r = requests.put(url, headers=HEADERS, data={"mappings": json.load(open(fp))})
+            r = requests.put(url, headers=HEADERS, json={"mappings": json.load(open(fp))})
             if not r.ok:
                 echo("mapping: {}".format(_data))
                 echo("billing索引创建失败，请检查： {}".format(r.json()))
