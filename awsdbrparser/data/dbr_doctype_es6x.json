@@ -28,9 +28,9 @@
         {
             "notanalyzed": {
                 "match": "*",
-                "match_mapping_type": "string",
+                "match_mapping_type": "text",
                 "mapping": {
-                    "type": "string",
+                    "type": "text",
                     "index": "not_analyzed"
                 }
             }
