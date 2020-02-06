@@ -23,6 +23,7 @@ import csv
 import json
 import threading
 import time
+import os
 
 import boto3
 import click
@@ -278,7 +279,7 @@ def parse(config, verbose=False):
             echo("创建billing-*的index，更新mapping {}".format(config.es2))
             # 创建索引和mapping一起完成
             _data = {"mappings": config.doctype}
-            fp = "./data/dbr_doctype_es6x.json"
+            fp = os.path.join(os.path.dirname(__file__), "data", "dbr_doctype_es6x.json")
             r = requests.put(url, headers=HEADERS, data={"mappings": json.load(open(fp))})
             if not r.ok:
                 echo("mapping: {}".format(_data))
