@@ -149,6 +149,11 @@ class ClickEchoWrapper(object):
 
 
 def unicode_convert(input):
+    """
+    解决python2反序列化为unicode的问题
+    :param input: type dict
+    :return:
+    """
     if isinstance(input, dict):
         return {unicode_convert(key): unicode_convert(value) for key, value in input.iteritems()}
     elif isinstance(input, list):
