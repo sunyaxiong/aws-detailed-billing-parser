@@ -79,7 +79,8 @@ configure = click.make_pass_decorator(Config, ensure=True)
 @click.option('-q', '--quiet', is_flag=True, default=False, help='Runs as silently as possible.')
 @click.option('--fail-fast', is_flag=True, default=False, help='Stop parsing on first index error.')
 @click.option('--debug', is_flag=True, default=False, help='Print extra data even in quiet mode.')
-@click.option('-c', '--custom', is_flag=True, default=False, help='Define whether write data to a security es')
+# 只是通过-C 来控制新增的代码逻辑，不影响原有功能。
+@click.option('-C', '--custom', is_flag=True, default=False, help='Define whether write data to a security es')
 @configure
 def main(config, *args, **kwargs):
     """AWS - Detailed Billing Records parser"""

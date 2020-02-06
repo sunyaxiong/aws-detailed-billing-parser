@@ -28,9 +28,10 @@ import boto3
 import click
 from elasticsearch import Elasticsearch, RequestsHttpConnection, helpers
 from requests_aws4auth import AWS4Auth
+import requests
 
 from . import utils
-from .config import PROCESS_BY_BULK, PROCESS_BY_LINE, PROCESS_BI_ONLY
+from .config import PROCESS_BY_BULK, PROCESS_BY_LINE, PROCESS_BI_ONLY, HEADERS
 
 Summary = collections.namedtuple('Summary', 'added skipped updated control_messages')
 """
@@ -72,7 +73,7 @@ def analytics(config, echo):
         es.indices.create(config.index_name, ignore=400)
         es.indices.create(config.es_doctype, ignore=400)
     else:
-        echo("prepare index and mapping，The ES version is {}".format(config.es2))
+        echo("原始版本的两个create重复了，观察后再补充逻辑，The ES version is {}".format(config.es2))
         # TODO
 
     csv_file = csv.DictReader(file_in, delimiter=config.csv_delimiter)
@@ -112,6 +113,7 @@ def analytics(config, echo):
     # In this case we try to process both, but one will be zero and we need to check
     # TODO: use a single variable and an flag to output Cost or Unblended
     # TODO 此处需要测试，ec2-per-usd是否能在es7下创建，对于此处的判断逻辑有疑惑：一个索引，多个type？
+    # 此处的坑在export-cn.json 里，index已经创建了
     if config.es2:
         index_name = config.index_name
     else:
@@ -129,19 +131,35 @@ def analytics(config, echo):
                 }
             })
         else:
-            echo("rest 创建索引ec2_per_usd, version {}".format(config.es2))
+            echo("在-C参数控制下，通过rest创建索引ec2_per_usd, version {}".format(config.es2))
+            url = "http://{}:{}/{}".format(config.es_host, config.es_port, "ec2_per_usd")
+            r = requests.put(url, headers=HEADERS, data={"mappings": {
+                "properties": {
+                    "UsageStartDate": {"type": "date", "format": "YYYY-MM-dd HH:mm:ss"}
+                }
+            }})
+            if not r.ok:
+                echo("ec2_per_usd的mapping创建失败，请检查")
     for k, v in analytics_daytime.items():
         result_cost = 1.0 / (v.get('Cost') / v.get('Count')) if v.get('Cost') else 0.00
         result_unblended = 1.0 / (v.get('Unblended') / v.get('Count')) if v.get('Unblended') else 0.0
         if not config.custom:
-            response = es.index(index=index_name, doc_type='ec2_per_usd',
+            response = es.index(index=index_name, doc_type='ec2_per_usd',  # index的子type在2.3下可以这样用
                                 body={'UsageStartDate': k,
                                       'EPU_Cost': result_cost,
                                       'EPU_UnBlended': result_unblended})
             if not response.get('created'):
                 echo('[!] Unable to send document to ES!')
         else:
-            echo("rest 创建索引ec2_per_usd的mapping, version {}".format(config.es2))
+            echo("写入ec2_per_usd索引数据, version {}".format(config.es2))
+            url = "http://{}:{}/{}".format(config.es_host, config.es_port, "ec2_per_usd")
+            r = requests.post(url, headers=HEADERS, data={
+                'UsageStartDate': k,
+                "EPU_Cost": result_cost,
+                "EPU_UnBlended": result_unblended
+            })
+            if not r.ok:
+                echo("ec2_per_usd索引写入失败，请检查")
 
     # Elasticity
     #
@@ -152,19 +170,29 @@ def analytics(config, echo):
         index_name = config.index_name
     else:
         index_name = 'elasticity'
-    if not es.indices.exists(index=index_name):
+    if not es.indices.exists(index=index_name):  # True/False # 就是用来判断是否存在index，create的用法是2.3的特性
         if not config.custom:
             es.indices.create(index_name, ignore=400, body={
                 "mappings": {
                     "elasticity": {
                         "properties": {
-                            "UsageStartDate" : {"type": "date", "format": "YYYY-MM-dd HH:mm:ss"}
+                            "UsageStartDate": {"type": "date", "format": "YYYY-MM-dd HH:mm:ss"}
                         }
                     }
                 }
             })
         else:
             echo("此处通过rest创建elasticity的索引，config_es: version {}".format(config._es))
+            url = "http://{}:{}/{}".format(config.es_host, config.es_port, "elasticity")
+            r = requests.put(url, headers=HEADERS, data={
+                "mappings":{
+                    "properties": {
+                        "UsageStartDate": {"type": "date", "format": "YYYY-MM-dd HH:mm:ss"}
+                    }
+                }
+            })
+            if not r.ok:
+                echo("elasticity的索引mapping失败，请检查")
     for k, v in analytics_day_only.items():
         ec2_min = min(value["Count"] - value["RI"] for key, value in analytics_daytime.items() if k in key)
         ec2_max = max(value["Count"] - value["RI"] for key, value in analytics_daytime.items() if k in key)
@@ -187,6 +215,15 @@ def analytics(config, echo):
                 echo('[!] Unable to send document to ES!')
         else:
             echo("此处通过rest创建elasticity的mapping， setter： config.es2: version {}".format(config.es2))
+            url = "http://{}:{}/{}".format(config.es_host, config.es_port, "elasticity")
+            r = requests.post(url, headers=HEADERS, data={
+                'UsageStartDate': k + ' 12:00:00',
+                "Elasticity": elasticity,
+                "ReservedInstanceCoverage": ri_coverage,
+                'SpotCoverage': spot_coverage
+            })
+            if not r.ok:
+                echo("elasticity索引写入失败，请检查")
 
     file_in.close()
     # Finished Processing
@@ -233,8 +270,16 @@ def parse(config, verbose=False):
             es.indices.create(config.index_name, ignore=400)
             es.indices.put_mapping(index=config.index_name, doc_type=config.es_doctype, body=config.mapping)
         else:
-            echo("The ES version is {}".format(config.es2))
             # TODO es7 and security
+            url = "http://{}:{}/{}".format(config.es_host, config.es_port, config.index_name)
+            if config.delete_index:
+                echo('Deleting current index: {}'.format(config.index_name))
+                requests.delete(url, headers=HEADERS)
+            echo("创建billing-*的index，更新mapping {}".format(config.es2))
+            # 创建索引和mapping一起完成
+            r = requests.put(url, headers=HEADERS, data={"mappings": config.doctype})
+            if not r.ok:
+                echo("billing索引创建失败，请检查： {}".format(r.json()))
 
     # 日志的显示情况？
     if verbose:
@@ -283,7 +328,7 @@ def parse(config, verbose=False):
                         if config.debug:
                             print(json.dumps(  # do not use 'echo()' here
                                 utils.pre_process(json_row)))
-                        yield json.dumps(utils.pre_process(json_row))
+                        yield json.dumps(utils.pre_process(json_row))  # 此处对json_row进行了处理
                         pbar.update(1)
 
             # 此处在批量写入账单数据
@@ -321,7 +366,18 @@ def parse(config, verbose=False):
                         added += 1
             else:
                 echo("custom streaming bulk, The ES version is {}".format(config.es2))
-
+                for recno, (success, result) in enumerate(helpers.streaming_bulk(es, documents(),
+                                                                                 index=config.index_name,
+                                                                                 doc_type=config.es_doctype,
+                                                                                 chunk_size=config.bulk_size)):
+                    if not success:
+                        message = 'Failed to index record {:d} with result: {!r}'.format(recno, result)
+                        if config.fail_fast:
+                            raise ParserError(message)
+                        else:
+                            echo(message, err=True)
+                    else:
+                        added += 1
     elif config.process_mode == PROCESS_BY_LINE:
         # 忽略即可
         with progressbar(length=record_count) as pbar:

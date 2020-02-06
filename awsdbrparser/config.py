@@ -48,6 +48,10 @@ DOCTYPE_FILES = {
     '6': 'dbr_doctype_es6x.json'
 }
 
+HEADERS = {
+    "Content-Type": "application/json"
+}
+
 """
 DBR document properties for actual document type.
 See :attr:`Config.es_doctype` and :attr:`Config.mapping` for details.
