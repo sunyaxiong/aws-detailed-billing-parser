@@ -138,7 +138,7 @@ def analytics(config, echo):
             url = "http://{}:{}/{}".format(config.es_host, config.es_port, "ec2_per_usd")
             r = requests.put(url, headers=HEADERS, json={"mappings": {
                 "properties": {
-                    "UsageStartDate": {"type": "date", "format": "YYYY-MM-dd HH:mm:ss"}
+                    "UsageStartDate": {"type": "date", "format": "YYYY-MM-dd HH:mm:ss||YYYY/MM/dd HH:mm||YYYY/M/d H:mm"}
                 }
             }})
             if not r.ok:
@@ -192,7 +192,9 @@ def analytics(config, echo):
             r = requests.put(url, headers=HEADERS, json={
                 "mappings": {
                     "properties": {
-                        "UsageStartDate": {"type": "date", "format": "YYYY-MM-dd HH:mm:ss"}
+                        "UsageStartDate": {
+                            "type": "date", "format": "YYYY-MM-dd HH:mm:ss||YYYY/MM/dd HH:mm||YYYY/M/d H:mm"
+                        }
                     }
                 }
             })
