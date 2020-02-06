@@ -136,7 +136,7 @@ def analytics(config, echo):
             url = "http://{}:{}/{}".format(config.es_host, config.es_port, "ec2_per_usd")
             r = requests.put(url, headers=HEADERS, json={"mappings": {
                 "properties": {
-                    "UsageStartDate": {"type": "date", "format": "YYYY/MM/dd HH:mm:ss||YYYY/M/d H:mm"}
+                    "UsageStartDate": {"type": "date", "format": "YYYY-MM-dd HH:mm:ss"}
                 }
             }})
             if not r.ok:
@@ -188,7 +188,7 @@ def analytics(config, echo):
             r = requests.put(url, headers=HEADERS, json={
                 "mappings": {
                     "properties": {
-                        "UsageStartDate": {"type": "date", "format": "YYYY/MM/dd HH:mm:ss||YYYY/M/d H:mm"}
+                        "UsageStartDate": {"type": "date", "format": "YYYY-MM-dd HH:mm:ss"}
                     }
                 }
             })
@@ -330,9 +330,8 @@ def parse(config, verbose=False):
                 for json_row in csv_file:
                     if not is_control_message(json_row, config):
                         if config.debug:
-                            # print(json.dumps(  # do not use 'echo()' here
-                            #     utils.pre_process(json_row)))
-                            echo("debug: json_row error")
+                            print(json.dumps(  # do not use 'echo()' here
+                                utils.pre_process(json_row)))
                         yield json.dumps(utils.pre_process(json_row))  # 此处对json_row进行了处理
                         pbar.update(1)
 
