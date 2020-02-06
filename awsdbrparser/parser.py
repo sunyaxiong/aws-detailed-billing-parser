@@ -199,7 +199,7 @@ def analytics(config, echo):
                 }
             })
             if not r.ok:
-                echo("elasticity的索引mapping失败，请检查")
+                echo("elasticity的索引mapping失败，请检查: {}".format(r.json()))
     for k, v in analytics_day_only.items():
         ec2_min = min(value["Count"] - value["RI"] for key, value in analytics_daytime.items() if k in key)
         ec2_max = max(value["Count"] - value["RI"] for key, value in analytics_daytime.items() if k in key)
@@ -230,7 +230,7 @@ def analytics(config, echo):
                 'SpotCoverage': spot_coverage
             })
             if not r.ok:
-                echo("elasticity索引写入失败，请检查")
+                echo("elasticity索引写入失败，请检查: {}".format(r.json()))
 
     file_in.close()
     # Finished Processing
