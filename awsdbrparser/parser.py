@@ -277,8 +277,10 @@ def parse(config, verbose=False):
                 requests.delete(url, headers=HEADERS)
             echo("创建billing-*的index，更新mapping {}".format(config.es2))
             # 创建索引和mapping一起完成
+            _data = {"mappings": config.doctype}
             r = requests.put(url, headers=HEADERS, data={"mappings": config.doctype})
             if not r.ok:
+                echo("mapping: {}".format(_data))
                 echo("billing索引创建失败，请检查： {}".format(r.json()))
 
     # 日志的显示情况？
