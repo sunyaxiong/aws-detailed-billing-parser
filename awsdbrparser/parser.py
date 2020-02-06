@@ -135,11 +135,11 @@ def analytics(config, echo):
             url = "http://{}:{}/{}".format(config.es_host, config.es_port, "ec2_per_usd")
             r = requests.put(url, headers=HEADERS, data={"mappings": {
                 "properties": {
-                    "UsageStartDate": {"type": "date", "format": "YYYY-MM-dd HH:mm:ss"}
+                    "UsageStartDate": {"type": "date", "format": "YYYY/MM/dd HH:mm:ss||YYYY/M/d H:mm"}
                 }
             }})
             if not r.ok:
-                echo("ec2_per_usd的mapping创建失败，请检查")
+                echo("ec2_per_usd的mapping创建失败，请检查{}".format(r.json()))
     for k, v in analytics_daytime.items():
         result_cost = 1.0 / (v.get('Cost') / v.get('Count')) if v.get('Cost') else 0.00
         result_unblended = 1.0 / (v.get('Unblended') / v.get('Count')) if v.get('Unblended') else 0.0
@@ -183,12 +183,11 @@ def analytics(config, echo):
                 }
             })
         else:
-            echo("此处通过rest创建elasticity的索引，config_es: version {}".format(config._es))
             url = "http://{}:{}/{}".format(config.es_host, config.es_port, "elasticity")
             r = requests.put(url, headers=HEADERS, data={
-                "mappings":{
+                "mappings": {
                     "properties": {
-                        "UsageStartDate": {"type": "date", "format": "YYYY-MM-dd HH:mm:ss"}
+                        "UsageStartDate": {"type": "date", "format": "YYYY/MM/dd HH:mm:ss||YYYY/M/d H:mm"}
                     }
                 }
             })
@@ -279,7 +278,8 @@ def parse(config, verbose=False):
             echo("创建billing-*的index，更新mapping {}".format(config.es2))
             # 创建索引和mapping一起完成
             _data = {"mappings": config.doctype}
-            r = requests.put(url, headers=HEADERS, data={"mappings": config.doctype})
+            fp = "./data/dbr_doctype_es6x.json"
+            r = requests.put(url, headers=HEADERS, data={"mappings": json.load(open(fp))})
             if not r.ok:
                 echo("mapping: {}".format(_data))
                 echo("billing索引创建失败，请检查： {}".format(r.json()))
