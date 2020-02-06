@@ -138,7 +138,10 @@ def analytics(config, echo):
             url = "http://{}:{}/{}".format(config.es_host, config.es_port, "ec2_per_usd")
             r = requests.put(url, headers=HEADERS, json={"mappings": {
                 "properties": {
-                    "UsageStartDate": {"type": "date", "format": "YYYY-MM-dd HH:mm:ss||YYYY/MM/dd HH:mm||YYYY/M/d H:mm"}
+                    "UsageStartDate": {
+                        "type": "date",
+                        "format": "YYYY-MM-dd HH:mm:ss||YYYY/MM/dd HH:mm||YYYY/M/d H:mm||YYYY/MM/dd HH:mm:ss"
+                    }
                 }
             }})
             if not r.ok:
@@ -188,12 +191,14 @@ def analytics(config, echo):
                 }
             })
         else:
+            # -C 参数控制
             url = "http://{}:{}/{}".format(config.es_host, config.es_port, "elasticity")
             r = requests.put(url, headers=HEADERS, json={
                 "mappings": {
                     "properties": {
                         "UsageStartDate": {
-                            "type": "date", "format": "YYYY-MM-dd HH:mm:ss||YYYY/MM/dd HH:mm||YYYY/M/d H:mm"
+                            "type": "date",
+                            "format": "YYYY-MM-dd HH:mm:ss||YYYY/MM/dd HH:mm||YYYY/M/d H:mm||YYYY/MM/dd HH:mm:ss"
                         }
                     }
                 }
