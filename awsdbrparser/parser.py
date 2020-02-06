@@ -278,11 +278,11 @@ def parse(config, verbose=False):
                 requests.delete(url, headers=HEADERS)
             echo("创建billing-*的index，更新mapping {}".format(config.es2))
             # 创建索引和mapping一起完成
-            _data = {"mappings": config.doctype}
             fp = os.path.join(os.path.dirname(__file__), "data", "dbr_doctype_es6x.json")
-            r = requests.put(url, headers=HEADERS, json={"mappings": json.load(open(fp))})
+            mappings = {"mappings": json.load(open(fp))}
+            r = requests.put(url, headers=HEADERS, json=mappings)
             if not r.ok:
-                echo("mapping: {}".format(_data))
+                echo("mapping: {}:{}".format(type(mappings), mappings))
                 echo("billing索引创建失败，请检查： {}".format(r.json()))
 
     # 日志的显示情况？
