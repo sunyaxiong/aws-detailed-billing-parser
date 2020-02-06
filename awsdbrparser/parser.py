@@ -280,9 +280,9 @@ def parse(config, verbose=False):
             # 创建索引和mapping一起完成
             fp = os.path.join(os.path.dirname(__file__), "data", "dbr_doctype_es6x.json")
             mappings = {"mappings": json.load(open(fp))}
-            r = requests.put(url, headers=HEADERS, json=mappings)
+            r = requests.put(url, headers=HEADERS, json=utils.unicode_convert(mappings))
             if not r.ok:
-                echo("mapping: {}:{}".format(type(mappings), mappings))
+                echo("mapping: {}:{}".format(type(utils.unicode_convert(mappings)), utils.unicode_convert(mappings)))
                 echo("billing索引创建失败，请检查： {}".format(r.json()))
 
     # 日志的显示情况？
