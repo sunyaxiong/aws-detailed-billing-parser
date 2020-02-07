@@ -158,7 +158,7 @@ def analytics(config, echo):
             if not response.get('created'):
                 echo('[!] Unable to send document to ES!')
         else:
-            echo("接下来写入ec2_per_usd索引数据, version {}".format(config.es2))
+            # echo("接下来写入ec2_per_usd索引数据, version {}".format(config.es2))
             url = "http://{}:{}/{}/_doc".format(config.es_host, config.es_port, "ec2_per_usd")
             r = requests.post(url, headers=HEADERS, json={
                 'UsageStartDate': k,
@@ -228,7 +228,7 @@ def analytics(config, echo):
             if not response.get('created'):
                 echo('[!] Unable to send document to ES!')
         else:
-            echo("此处通过rest创建elasticity的mapping， setter： config.es2: version {}".format(config.es2))
+            # echo("此处通过rest创建elasticity的mapping， setter： config.es2: version {}".format(config.es2))
             url = "http://{}:{}/{}/_doc".format(config.es_host, config.es_port, "elasticity")
             r = requests.post(url, headers=HEADERS, json={
                 'UsageStartDate': k + ' 12:00:00',
