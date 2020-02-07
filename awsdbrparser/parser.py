@@ -384,7 +384,7 @@ def parse(config, verbose=False):
                     else:
                         added += 1
             else:
-                echo("custom streaming bulk, The ES version is {}".format(config.es2))
+                echo("############# Streaming Bulk Begin ###################")
                 for recno, (success, result) in enumerate(helpers.streaming_bulk(es, documents(),
                                                                                  index=config.index_name,
                                                                                  # doc_type=config.es_doctype,
@@ -394,6 +394,7 @@ def parse(config, verbose=False):
                         if config.fail_fast:
                             raise ParserError(message)
                         else:
+                            echo("--------------------------------------------")
                             echo(message, err=True)
                     else:
                         added += 1
