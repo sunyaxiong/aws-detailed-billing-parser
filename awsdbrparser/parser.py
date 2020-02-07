@@ -140,7 +140,8 @@ def analytics(config, echo):
                 "properties": {
                     "UsageStartDate": {
                         "type": "date",
-                        "format": "YYYY-MM-dd HH:mm:ss||YYYY/MM/dd HH:mm||YYYY/M/d H:mm||YYYY/MM/dd HH:mm:ss"
+                        "format": "YYYY/M/d HH:mm:ss||YYYY/MM/dd HH:mm||YYYY/M/d H:mm||YYYY/MM/dd HH:mm:ss"
+                                "||YYYY-MM-dd HH:mm:ss"
                     }
                 }
             }})
@@ -199,6 +200,7 @@ def analytics(config, echo):
                         "UsageStartDate": {
                             "type": "date",
                             "format": "YYYY/M/d HH:mm:ss||YYYY/MM/dd HH:mm||YYYY/M/d H:mm||YYYY/MM/dd HH:mm:ss"
+                                      "||YYYY-MM-dd HH:mm:ss"
                         }
                     }
                 }
@@ -287,14 +289,16 @@ def parse(config, verbose=False):
             if config.delete_index:
                 echo('Deleting current index: {}'.format(config.index_name))
                 requests.delete(url, headers=HEADERS)
-            echo("创建billing-*的index，更新mapping {}".format(config.es2))
-            # 创建索引和mapping一起完成
-            fp = os.path.join(os.path.dirname(__file__), "data", "dbr_doctype_es6x.json")
-            mappings = {"mappings": json.load(open(fp))}
-            r = requests.put(url, headers=HEADERS, json=utils.unicode_convert(mappings))
-            if not r.ok:
-                echo("mapping: {}:{}".format(type(utils.unicode_convert(mappings)), utils.unicode_convert(mappings)))
-                echo("billing索引创建失败，请检查： {}".format(r.json()))
+            if not es.indices.exists(index=config.index_name):
+                echo("创建billing-*的index，更新mapping {}".format(config.es2))
+                # 创建索引和mapping一起完成
+                fp = os.path.join(os.path.dirname(__file__), "data", "dbr_doctype_es6x.json")
+                mappings = {"mappings": json.load(open(fp))}
+                r = requests.put(url, headers=HEADERS, json=utils.unicode_convert(mappings))
+                if not r.ok:
+                    echo("mappings: {}:{}".format(type(utils.unicode_convert(mappings)),
+                                                  utils.unicode_convert(mappings)))
+                    echo("billing索引mapping失败，请检查： {}".format(r.json()))
 
     # 日志的显示情况？
     if verbose:

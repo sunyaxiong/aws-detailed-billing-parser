@@ -5,7 +5,8 @@
         "RecordType": {"type": "keyword"},
         "RecordId": {"type": "keyword"},
         "UsageType": {"type": "keyword"},
-        "UsageEndDate": {"type": "date", "format": "YYYY-MM-dd HH:mm:ss"},
+        "UsageEndDate": {"type": "date",
+            "format": "YYYY/M/d HH:mm:ss||YYYY/MM/dd HH:mm||YYYY/M/d H:mm||YYYY/MM/dd HH:mm:ss||YYYY-MM-dd HH:mm:ss"},
         "ItemDescription": {"type": "keyword"},
         "ProductName": {"type": "keyword"},
         "RateId": {"type": "keyword"},
@@ -19,7 +20,8 @@
         "UsageQuantity": {"type": "float"},
         "Operation": {"type": "keyword"},
         "ReservedInstance": {"type": "keyword"},
-        "UsageStartDate": {"type": "date", "format": "YYYY-MM-dd HH:mm:ss"},
+        "UsageStartDate": {"type": "date",
+            "format": "YYYY/M/d HH:mm:ss||YYYY/MM/dd HH:mm||YYYY/M/d H:mm||YYYY/MM/dd HH:mm:ss||YYYY-MM-dd HH:mm:ss"},
         "BlendedCost": {"type": "float"},
         "BlendedRate": {"type": "float"},
         "UnBlendedCost": {"type": "float"},
@@ -28,9 +30,9 @@
         {
             "notanalyzed": {
                 "match": "*",
-                "match_mapping_type": "text",
+                "match_mapping_type": "string",
                 "mapping": {
-                    "type": "text",
+                    "type": "string",
                     "index": "not_analyzed"
                 }
             }
