@@ -32,7 +32,7 @@
                 "match": "*",
                 "match_mapping_type": "string",
                 "mapping": {
-                    "type": "text"
+                    "type": "keyword"
                 }
             }
         }
