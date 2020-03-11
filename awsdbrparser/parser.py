@@ -74,8 +74,8 @@ def analytics(config, echo):
         es.indices.create(config.index_name, ignore=400)
         es.indices.create(config.es_doctype, ignore=400)
     else:
-        echo("原始版本的两个create重复了，观察后再补充逻辑，The ES version is {}".format(config.es2))
-        # TODO
+        pass
+        # 新版本的billing索引在下方创建
 
     csv_file = csv.DictReader(file_in, delimiter=config.csv_delimiter)
     analytics_daytime = dict()
@@ -136,7 +136,7 @@ def analytics(config, echo):
         else:
             echo("在-C参数控制下，通过rest创建索引ec2_per_usd, version {}".format(config.es2))
             url = "http://{}:{}/{}".format(config.es_host, config.es_port, "ec2_per_usd")
-            r = requests.put(url, headers=HEADERS, json={"mappings": {
+            r = requests.put(url, headers=HEADERS, json={"settings": {"number_of_replicas": 0}, "mappings": {
                 "properties": {
                     "UsageStartDate": {
                         "type": "date",
@@ -195,6 +195,7 @@ def analytics(config, echo):
             # -C 参数控制
             url = "http://{}:{}/{}".format(config.es_host, config.es_port, "elasticity")
             r = requests.put(url, headers=HEADERS, json={
+                "settings": {"number_of_replicas": 0},
                 "mappings": {
                     "properties": {
                         "UsageStartDate": {
@@ -284,16 +285,17 @@ def parse(config, verbose=False):
             es.indices.create(config.index_name, ignore=400)
             es.indices.put_mapping(index=config.index_name, doc_type=config.es_doctype, body=config.mapping)
         else:
-            # TODO es7 and security
+            # 主索引的创建
+            # TODO es7 security
             url = "http://{}:{}/{}".format(config.es_host, config.es_port, config.index_name)
             if config.delete_index:
                 echo('Deleting current index: {}'.format(config.index_name))
                 requests.delete(url, headers=HEADERS)
-            if not es.indices.exists(index=config.index_name):
+                # 上方，通过delete_index清理原有index数据，下面创建新的index
                 echo("创建billing-*的index，更新mapping {}".format(config.es2))
                 # 创建索引和mapping一起完成
                 fp = os.path.join(os.path.dirname(__file__), "data", "dbr_doctype_es6x.json")
-                mappings = {"mappings": json.load(open(fp))}
+                mappings = {"settings": {"number_of_replicas": 0}, "mappings": json.load(open(fp))}
                 r = requests.put(url, headers=HEADERS, json=utils.unicode_convert(mappings))
                 if not r.ok:
                     echo("mappings: {}:{}".format(type(utils.unicode_convert(mappings)),

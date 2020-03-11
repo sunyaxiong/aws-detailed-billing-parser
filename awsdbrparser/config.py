@@ -207,7 +207,6 @@ class Config(object):
         self.doctype = version
         # 貌似整个程序都是按照6的版本在处理索引？此处在本地做个实验，也要了解setter的用法
         # 下面index_name 的逻辑来看都是按照6.x的逻辑来命名index的，好像与实际不符
-        # TODO 此处要重点看下，先看下setter用法吧
 
     @property
     def index_name(self):
