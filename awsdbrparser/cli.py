@@ -81,6 +81,7 @@ configure = click.make_pass_decorator(Config, ensure=True)
 @click.option('--debug', is_flag=True, default=False, help='Print extra data even in quiet mode.')
 # 只是通过-C 来控制新增的代码逻辑，不影响原有功能。
 @click.option('-C', '--custom', default=False, help='Define whether write data to a security es')
+@click.option('-k', '--key', default="", help='Define the key access to a security es host')
 @configure
 def main(config, *args, **kwargs):
     """AWS - Detailed Billing Records parser"""

@@ -135,7 +135,7 @@ def analytics(config, echo):
             })
         else:
             echo("在-C参数控制下，通过rest创建索引ec2_per_usd, version {}".format(config.es2))
-            url = "http://{}:{}/{}".format(config.es_host, config.es_port, "ec2_per_usd")
+            url = "http://{}@{}:{}/{}".format(config.key, config.es_host, config.es_port, "ec2_per_usd")
             r = requests.put(url, headers=HEADERS, json={"settings": {"number_of_replicas": 0}, "mappings": {
                 "properties": {
                     "UsageStartDate": {
@@ -159,7 +159,7 @@ def analytics(config, echo):
                 echo('[!] Unable to send document to ES!')
         else:
             # echo("接下来写入ec2_per_usd索引数据, version {}".format(config.es2))
-            url = "http://{}:{}/{}/_doc".format(config.es_host, config.es_port, "ec2_per_usd")
+            url = "http://{}@{}:{}/{}/_doc".format(config.key, config.es_host, config.es_port, "ec2_per_usd")
             r = requests.post(url, headers=HEADERS, json={
                 'UsageStartDate': k,
                 "EPU_Cost": result_cost,
@@ -193,7 +193,7 @@ def analytics(config, echo):
             })
         else:
             # -C 参数控制
-            url = "http://{}:{}/{}".format(config.es_host, config.es_port, "elasticity")
+            url = "http://{}@{}:{}/{}".format(config.key, config.es_host, config.es_port, "elasticity")
             r = requests.put(url, headers=HEADERS, json={
                 "settings": {"number_of_replicas": 0},
                 "mappings": {
@@ -230,7 +230,7 @@ def analytics(config, echo):
                 echo('[!] Unable to send document to ES!')
         else:
             # echo("此处通过rest创建elasticity的mapping， setter： config.es2: version {}".format(config.es2))
-            url = "http://{}:{}/{}/_doc".format(config.es_host, config.es_port, "elasticity")
+            url = "http://{}@{}:{}/{}/_doc".format(config.key, config.es_host, config.es_port, "elasticity")
             r = requests.post(url, headers=HEADERS, json={
                 'UsageStartDate': k + ' 12:00:00',
                 "Elasticity": elasticity,
@@ -287,7 +287,7 @@ def parse(config, verbose=False):
         else:
             # 主索引的创建
             # TODO es7 security
-            url = "http://{}:{}/{}".format(config.es_host, config.es_port, config.index_name)
+            url = "http://{}@{}:{}/{}".format(config.key, config.es_host, config.es_port, config.index_name)
             if config.delete_index:
                 echo('Deleting current index: {}'.format(config.index_name))
                 requests.delete(url, headers=HEADERS)

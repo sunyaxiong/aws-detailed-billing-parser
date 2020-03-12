@@ -129,6 +129,7 @@ class Config(object):
                 "AccountTotal"]}
         self._es2 = False
         self._doctype = None
+        self.key = ""
 
     @property
     def mapping(self):
