@@ -276,8 +276,13 @@ def parse(config, verbose=False):
                 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es',
                                    session_token=credentials.token)
 
-        es = Elasticsearch([{'host': config.es_host, 'port': config.es_port}], timeout=config.es_timeout,
-                           http_auth=awsauth, connection_class=RequestsHttpConnection)
+        # 使得sdk的bulk方法支持用户名密码认证
+        if not config.custom:
+            es = Elasticsearch([{'host': config.es_host, 'port': config.es_port}], timeout=config.es_timeout,
+                                http_auth=awsauth, connection_class=RequestsHttpConnection)
+        else:
+            es = Elasticsearch("http://{}@192.168.152.170:9201".format(config.key))
+
         if not config.custom:
             if config.delete_index:
                 echo('Deleting current index: {}'.format(config.index_name))
