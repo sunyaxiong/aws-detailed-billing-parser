@@ -68,8 +68,9 @@ def analytics(config, echo):
     # 经过测试，python版本的sdk对安全的支持文档较少，未找到合适方法使用sdk。为了后期维护和扩展性，
     # 此处为预先创建billing索引，创建mapping
     # 考虑使用官方更推荐的restfulAPI，对高版本、安全的ES集群进行数据写入。
-    es = Elasticsearch([{'host': config.es_host, 'port': config.es_port}], timeout=config.es_timeout, http_auth=awsauth,
-                       connection_class=RequestsHttpConnection)
+    # es = Elasticsearch([{'host': config.es_host, 'port': config.es_port}], timeout=config.es_timeout, http_auth=awsauth,
+    #                    connection_class=RequestsHttpConnection)
+    es = Elasticsearch("http://{}@192.168.152.170:9201".format(config.key))  # 至此，脚本不再支持AWS在脚本内认证
     if not config.custom:
         es.indices.create(config.index_name, ignore=400)
         es.indices.create(config.es_doctype, ignore=400)
