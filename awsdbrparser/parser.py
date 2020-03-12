@@ -70,7 +70,7 @@ def analytics(config, echo):
     # 考虑使用官方更推荐的restfulAPI，对高版本、安全的ES集群进行数据写入。
     # es = Elasticsearch([{'host': config.es_host, 'port': config.es_port}], timeout=config.es_timeout, http_auth=awsauth,
     #                    connection_class=RequestsHttpConnection)
-    es = Elasticsearch("http://{}@192.168.152.170:9201".format(config.key))  # 至此，脚本不再支持AWS在脚本内认证
+    es = Elasticsearch("http://{}@{}:{}".format(config.key, config.es_host, config.es_port))  # 至此，脚本不再支持AWS在脚本内认证
     if not config.custom:
         es.indices.create(config.index_name, ignore=400)
         es.indices.create(config.es_doctype, ignore=400)
@@ -282,7 +282,7 @@ def parse(config, verbose=False):
             es = Elasticsearch([{'host': config.es_host, 'port': config.es_port}], timeout=config.es_timeout,
                                 http_auth=awsauth, connection_class=RequestsHttpConnection)
         else:
-            es = Elasticsearch("http://{}@192.168.152.170:9201".format(config.key))
+            es = Elasticsearch("http://{}@{}:{}".format(config.key, config.es_host, config.es_port))
 
         if not config.custom:
             if config.delete_index:
